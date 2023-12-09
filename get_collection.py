@@ -14,9 +14,11 @@ MAP_FOLDER_REGEX = "(?:Map(?:\s?)Folder)(?:\:)(?:[\s+])([\w._&-]+)(?:\r?\n)?"
 
 MAP_BASE = "Muldraugh, KY"
 
+WORKSHOP_FILE_URL = "https://steamcommunity.com/sharedfiles/filedetails/?id={}"
+
 def yield_workshop_ids(collection_id : int) -> int:
     try:
-        url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={collection_id}"
+        url = WORKSHOP_FILE_URL.format(collection_id)
         response = requests.get(url)
 
         response.raise_for_status()
@@ -32,7 +34,7 @@ def yield_workshop_ids(collection_id : int) -> int:
 
 def get_workshop_description(item_id : int) -> str:
     try:
-        url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}"
+        url = WORKSHOP_FILE_URL.format(item_id)
         response = requests.get(url)
 
         response.raise_for_status()
@@ -112,11 +114,11 @@ def main():
             print(f"Warning: Workshop item {item.workshop_id} has no mod IDs")
         
         if len(item.mod_ids) > 1:
-            selected_mod_ids = pick(item.mod_ids, "Select mods for workshop item", multiselect=True, min_selection_count=1)
+            selected_mod_ids = pick(item.mod_ids, f"Select mods for workshop item {WORKSHOP_FILE_URL.format(item.workshop_id)}", multiselect=True, min_selection_count=1)
             item.mod_ids = selected_mod_ids
             
         if len(item.map_folders) > 1:
-            selected_map_folders = pick(item.map_folders, "Select map folders for workshop item", multiselect=True, min_selection_count=1)
+            selected_map_folders = pick(item.map_folders, f"Select map folders for workshop item {WORKSHOP_FILE_URL.format(item.workshop_id)}", multiselect=True, min_selection_count=1)
             item.map_folders = selected_map_folders
 
         workshop_ids.add(item.workshop_id)
