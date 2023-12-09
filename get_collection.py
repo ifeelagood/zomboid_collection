@@ -9,8 +9,8 @@ import dataclasses
 
 from pick import pick
 
-MOD_ID_REGEX = "(?:Mod(?:\s?)ID)(?:\:)(?:[\s+])([\w._&-]+)"
-MAP_FOLDER_REGEX = "(?:Map(?:\s?)Folder)(?:\:)(?:[\s+])([\w._&-]+)"
+MOD_ID_REGEX = "(?:Mod(?:\s?)ID)(?:\:)(?:[\s+])([\w._&-]+)(?:\r?\n)?"
+MAP_FOLDER_REGEX = "(?:Map(?:\s?)Folder)(?:\:)(?:[\s+])([\w._&-]+)(?:\r?\n)?"
 
 MAP_BASE = "Muldraugh, KY"
 
@@ -41,28 +41,24 @@ def get_workshop_description(item_id : int) -> str:
         return
     
     soup = BeautifulSoup(response.text, "html.parser")
-    description = soup.find("div", class_="workshopItemDescription").text    
-    return description
+    div = soup.find("div", class_="workshopItemDescription")
+    
+    # hack: add line breaks <br>
+    for br in div.find_all("br"):
+        br.replace_with("\n")
+    
+    return div.text
 
 def get_mod_ids(description : str) -> typing.List[str]:
-    mod_ids = []
-
     matches = re.findall(MOD_ID_REGEX, description)
-    
-    for m in matches:
-        mod_ids.append(m.strip())
-    
+    mod_ids = set(m.strip() for m in matches)
         
     return mod_ids
 
 def get_map_folders(description : str) -> typing.List[str]:
-    map_folders = []
     matches = re.findall(MAP_FOLDER_REGEX, description)
-    
-    for m in matches:
-        map_folders.append(m.strip())
-        
-    
+    map_folders = set(m.strip() for m in matches)
+
     return map_folders
 
 def get_args():
