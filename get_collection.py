@@ -1,13 +1,14 @@
-import requests
-import datetime
-import requests_cache
 import argparse
+import dataclasses
+import datetime
 import re
 import typing
-from bs4 import BeautifulSoup
-import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import dataclasses
+
+import requests
+import requests_cache
+import tqdm
+from bs4 import BeautifulSoup
 
 from pick import pick
 
