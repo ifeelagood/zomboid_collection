@@ -1,4 +1,6 @@
 import requests
+import datetime
+import requests_cache
 import argparse
 import re
 import typing
@@ -16,10 +18,11 @@ MAP_BASE = "Muldraugh, KY"
 
 WORKSHOP_FILE_URL = "https://steamcommunity.com/sharedfiles/filedetails/?id={}"
 
-def yield_workshop_ids(collection_id : int) -> int:
+
+def yield_workshop_ids(session : requests.Session | requests_cache.CachedSession, collection_id : int) -> int:
     try:
         url = WORKSHOP_FILE_URL.format(collection_id)
-        response = requests.get(url)
+        response = session.get(url)
 
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -32,10 +35,10 @@ def yield_workshop_ids(collection_id : int) -> int:
         item_id = int(div["id"].strip("sharedfiles_"))
         yield item_id
 
-def get_workshop_soup(item_id : int) -> BeautifulSoup:
+def get_workshop_soup(session : requests.Session | requests_cache.CachedSession, item_id : int) -> BeautifulSoup:
     try:
         url = WORKSHOP_FILE_URL.format(item_id)
-        response = requests.get(url)
+        response = session.get(url)
 
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -104,6 +107,7 @@ def get_args():
     parser.add_argument("--collection-id", "-c", type=int, help="Workshop collection ID", required=True)
     parser.add_argument("--server-name", "-n", help="Server name", required=True)
     parser.add_argument("--threads", "-t", type=int, help="Number of threads to use", default=16)
+    parser.add_argument("--no-cache", action="store_true", help="Disable requests cache. Useful if collection was updated recently")
 
     return parser.parse_args()
 
@@ -118,11 +122,11 @@ class WorkshopItem:
         return hash(self.workshop_id)
 
 
-def scrape_workshop_items(args : argparse.Namespace, workshop_ids : typing.Set[int]) -> typing.Set[WorkshopItem]:
+def scrape_workshop_items(session : requests.Session | requests_cache.CachedSession, args : argparse.Namespace, workshop_ids : typing.Set[int]) -> typing.Set[WorkshopItem]:
     workshop_items = set()
     
     def process_item(item_id):
-        soup = get_workshop_soup(item_id)
+        soup = get_workshop_soup(session, item_id)
         
         workshop_items.add(WorkshopItem(
             workshop_id=item_id,
@@ -158,8 +162,11 @@ def select_mods_maps(workshop_items : typing.Set[WorkshopItem]):
 def main():
     args = get_args()
 
-    workshop_items = scrape_workshop_items(args, set(yield_workshop_ids(args.collection_id)))
-    
+    # create requests cache session
+    session = requests.Session() if args.no_cache else requests_cache.CachedSession(".requests_cache", expire_after=datetime.timedelta(minutes=30))
+
+    # scrape workshop items
+    workshop_items = scrape_workshop_items(session, args, set(yield_workshop_ids(session, args.collection_id)))
     select_mods_maps(workshop_items) # this modifies workshop_items
     
     # extract mod IDs and map folders
