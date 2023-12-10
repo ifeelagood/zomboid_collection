@@ -88,18 +88,6 @@ def parse_map_folders(description : str) -> typing.Set[str]:
     
 
     return map_folders
-
-
-def prompt_yn(prompt : str) -> bool:
-    while True:
-        response = input(prompt + " [y/n] ").lower()
-        if response == "y":
-            return True
-        elif response == "n":
-            return False
-        else:
-            print("Invalid response")
-            
         
 
 def get_args():
@@ -109,6 +97,8 @@ def get_args():
     parser.add_argument("--server-name", "-n", help="Server name", required=True)
     parser.add_argument("--threads", "-t", type=int, help="Number of threads to use", default=16)
     parser.add_argument("--no-cache", action="store_true", help="Disable requests cache. Useful if collection was updated recently")
+    parser.add_argument("--no-dependencies", action="store_true", help="Do not add unresolved mod dependencies")
+
 
     return parser.parse_args()
 
@@ -190,7 +180,7 @@ def main():
         for item_id in missing_dependencies:
             print(f"Mising: {WORKSHOP_FILE_URL.format(item_id)}")
             
-        if prompt_yn("Add missing dependencies?"):
+        if not args.no_dependencies:
             dependency_items = scrape_workshop_items(args, missing_dependencies)
             select_mods_maps(dependency_items)
             
